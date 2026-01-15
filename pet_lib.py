@@ -157,6 +157,7 @@ def say(name, message):
         <div style="
             background-color: #fff; 
             border: 2px solid #333; 
+            color: #333;
             border-radius: 15px; 
             padding: 8px 15px; 
             position: relative;
