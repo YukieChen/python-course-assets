@@ -1,5 +1,6 @@
 
 import os
+import base64
 try:
     from IPython.display import display, HTML, Image
     MODE = "JUPYTER"
@@ -32,10 +33,19 @@ def show_image(filename, width=200):
 
     path = _get_img_path(filename)
     if path:
+        # Check if we need to embed as base64 (for Colab HTML support)
+        try:
+            with open(path, "rb") as f:
+                encoded = base64.b64encode(f.read()).decode("utf-8")
+            img_src = f"data:image/png;base64,{encoded}"
+        except Exception as e:
+            print(f"Error loading image: {e}")
+            return
+
         # Use HTML for better control over sizing (maintain aspect ratio within box)
         html = f"""
         <div style="display: flex; justify-content: center; align-items: center; width: {width}px; height: {width}px; overflow: hidden;">
-            <img src="{path}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+            <img src="{img_src}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
         </div>
         """
         display(HTML(html))
