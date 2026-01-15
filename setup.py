@@ -6,7 +6,7 @@ import urllib.request
 ASSETS_DIR = "assets"
 IMAGES_DIR = os.path.join(ASSETS_DIR, "images")
 # TODO: Replace with your actual GitHub username and repo name after uploading
-GITHUB_USER = "YOUR_GITHUB_USER" 
+GITHUB_USER = "YukieChen" 
 REPO_NAME = "python-course-assets"
 BRANCH = "main"
 BASE_URL = f"https://raw.githubusercontent.com/{GITHUB_USER}/{REPO_NAME}/{BRANCH}/assets"
