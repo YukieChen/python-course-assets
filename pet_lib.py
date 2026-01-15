@@ -178,3 +178,31 @@ def say(name, message):
     </div>
     """
     display(HTML(html))
+
+def set_label(name):
+    """
+    Lesson 2: Set the label (name) of the pet.
+    Visualizes a name tag above the pet.
+    """
+    if MODE == "TERMINAL":
+        print(f"[LABEL] Assigned Name: {name}")
+        return
+
+    html = f"""
+    <div style="
+        font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif;
+        background-color: #FFEB3B; 
+        color: #333; 
+        padding: 5px 15px; 
+        border-radius: 15px; 
+        border: 3px solid #FBC02D;
+        display: inline-block;
+        font-weight: bold;
+        font-size: 1.2em;
+        box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+        margin-bottom: 10px;
+        transform: rotate(-2deg);">
+        Hello, my name is {name}
+    </div>
+    """
+    display(HTML(html))
