@@ -59,6 +59,9 @@ def show_egg():
     print("Mystery Egg found!")
     show_image("egg.png")
 
+# Alias for Lesson 1 Narrative
+summon = show_egg
+
 def show_pet(mood="normal"):
     """Show the pet with a specific mood (happy, sad, normal)."""
     if MODE == "TERMINAL":
