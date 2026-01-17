@@ -1,0 +1,557 @@
+"""
+Cyber-Pet Library - 視覺化電子雞工具庫 (v3.0)
+
+這是 Cyber-Pet 課程的核心視覺化工具庫 (Rich UI 支援版)。
+# Version: 5.0.0 (The Ascension Edition)
+# Author: Ys the Archmage
+# 
+# Changelog:
+# v5.0.0: Added celebrate() and credits() for the grand finale.
+# v4.0.0: Added AI features (show_thinking, chat bubbles, api).
+# v3.0.0: Added Rich UI (Dashboard, HUD) and Sound.
+# v2.0.0: Initial release with basic CLI helpers.
+"""
+
+__version__ = "5.0.0"
+__author__ = "Ys the Archmage"
+
+import os
+import base64
+import json
+import time
+from typing import Optional, Union, Dict, Any, List
+
+# 嘗試匯入 IPython 環境 (Jupyter Support)
+try:
+    from IPython.display import display, HTML, clear_output, Audio
+    MODE = "JUPYTER"
+except ImportError:
+    MODE = "TERMINAL"
+    # Mock classes for Terminal fallback
+    def display(obj): pass 
+    def clear_output(wait=False): pass
+    class HTML:
+        def __init__(self, data): self.data = data
+    class Audio:
+        def __init__(self, url=None, autoplay=False): pass
+
+# Constants
+ASSETS_DIR = os.path.join("assets", "images")
+
+# ==========================================
+# Utility Functions (工具函式)
+# ==========================================
+
+def get_version() -> str:
+    """取得當前 pet_lib 版本"""
+    return __version__
+
+def _get_img_path(filename: str) -> Optional[str]:
+    """Helper to get full path and verify existence."""
+    path = os.path.join(ASSETS_DIR, filename)
+    if not os.path.exists(path):
+        # Fallback for when current directory is not root
+        path = os.path.join("..", "..", ASSETS_DIR, filename) 
+        if not os.path.exists(path):
+            return None
+    return path
+
+def _render_html(html_content: str):
+    """Internal helper to render HTML content safely."""
+    if MODE == "JUPYTER":
+        display(HTML(html_content))
+    else:
+        pass
+
+# --- v5.0 Features ---
+
+def celebrate():
+    """
+    Plays a celebration animation and sound.
+    """
+    print("🎉 CONGRATULATIONS! 🎉")
+    print("      '._==_==_=_.'     ")
+    print("      .-\\:      /-.    ")
+    print("     | (|:.     |) |    ")
+    print("      '-|:.     |-'     ")
+    print("        \\::.    /      ")
+    print("         '::. .'        ")
+    print("           ) (          ")
+    print("         _.' '._        ")
+    # Assuming play_sound is defined elsewhere or will be added
+    # play_sound("level_up") 
+    if MODE == "TERMINAL":
+        print("[SOUND] Playing level_up sound.")
+    else:
+        # Placeholder for actual sound playing
+        pass
+    
+def show_credits(author_name="Unknown"):
+    """
+    Displays the game credits.
+    """
+    lines = [
+        "=== CREDITS ===",
+        f"Director: {author_name}",
+        "Art: Ys the Cat",
+        "Engine: Python 3",
+        "Based on: Cyber-Pet Course",
+        "THANK YOU FOR PLAYING!"
+    ]
+    # Assuming show_battle_log is defined elsewhere or will be added
+    # show_battle_log(lines)
+    if MODE == "TERMINAL":
+        print("\n".join(lines))
+    else:
+        # Placeholder for actual battle log display
+        _render_html("<pre>" + "\n".join(lines) + "</pre>")
+    # Assuming play_sound is defined elsewhere or will be added
+    # play_sound("heal")
+    if MODE == "TERMINAL":
+        print("[SOUND] Playing heal sound.")
+    else:
+        # Placeholder for actual sound playing
+        pass
+
+def _get_bar_color(value: int) -> str:
+    """決定狀態條的顏色"""
+    if value < 20: return "#ff4444" # Red
+    if value < 50: return "#ffbb33" # Orange
+    return "#00C851" # Green
+
+# ==========================================
+# Core Functions (v1.0 - v2.0)
+# ==========================================
+
+def show_image(filename: str, width: int = 200):
+    """顯示原始圖片檔案"""
+    if MODE == "TERMINAL":
+        print(f"[IMAGE] {filename}")
+        return
+
+    path = _get_img_path(filename)
+    if not path:
+        return
+
+    try:
+        with open(path, "rb") as f:
+            encoded = base64.b64encode(f.read()).decode("utf-8")
+        img_src = f"data:image/png;base64,{encoded}"
+    except Exception as e:
+        print(f"Error loading image: {e}")
+        return
+
+    html = f"""
+    <div style="display: flex; justify-content: center; align-items: center; width: {width}px; height: {width}px; overflow: hidden;">
+        <img src="{img_src}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+    </div>
+    """
+    _render_html(html)
+
+def show_pet(mood: str = "normal"):
+    """顯示寵物表情 (happy, sad, normal)"""
+    if MODE == "TERMINAL":
+        print(f"(^.{mood}.^) [Pet is {mood}]")
+        return
+    filename = f"{mood}.png"
+    show_image(filename)
+
+def show_stats(name: str, hp: int, hunger: int, happiness: Optional[int] = None):
+    """(v1.0 Compatible) Render a beautiful HTML stat bar."""
+    if MODE == "TERMINAL":
+        print(f"--- {name} ---")
+        print(f"HP: {hp}/100")
+        print(f"Hunger: {hunger}/100")
+        if happiness is not None:
+            print(f"Happy: {happiness}/100")
+        return
+    
+    def _create_bar_html(label, value):
+        color = _get_bar_color(value)
+        return f"""
+        <div style="margin-bottom: 5px;">
+            <strong>{label}:</strong> {value}/100
+            <div style="background-color: #ddd; border-radius: 5px; height: 10px; width: 100%;">
+                <div style="background-color: {color}; width: {min(value, 100)}%; height: 100%; border-radius: 5px;"></div>
+            </div>
+        </div>
+        """
+
+    content_html = f"""<h3 style="margin: 0 0 10px 0; text-align: center;">🍱 {name}</h3>"""
+    content_html += _create_bar_html("HP", hp)
+    content_html += _create_bar_html("Hunger", hunger)
+    
+    if happiness is not None:
+        content_html += _create_bar_html("Happiness", happiness)
+
+    container_html = f"""
+    <div style="border: 2px solid #333; border-radius: 10px; padding: 10px; width: 300px; background-color: #f0f0f0; font-family: Arial, sans-serif;">
+        {content_html}
+    </div>
+    """
+    _render_html(container_html)
+
+def say(name: str, message: str):
+    """Render a speech bubble."""
+    if MODE == "TERMINAL":
+        print(f"{name}: {message}")
+        return
+
+    html = f"""
+    <div style="display: flex; align-items: center; margin-bottom: 10px;">
+        <div style="font-weight: bold; margin-right: 10px;">{name}:</div>
+        <div style="background-color: #fff; border: 2px solid #333; border-radius: 15px; padding: 8px 15px;">
+            {message}
+        </div>
+    </div>
+    """
+    _render_html(html)
+
+def set_label(name: str):
+    """Visualizes a name tag."""
+    if MODE == "TERMINAL":
+        print(f"[LABEL] Assigned Name: {name}")
+        return
+    html = f"""
+    <div style="background-color: #FFEB3B; padding: 5px 15px; border-radius: 15px; border: 3px solid #FBC02D; display: inline-block; font-weight: bold;">
+        Hello, my name is {name}
+    </div>
+    """
+    _render_html(html)
+
+def show_pet_dict(pet_data: Dict[str, Any]):
+    """(v2.0) 顯示寵物狀態，支援傳入 Dictionary。"""
+    name = pet_data.get('name', 'Unknown')
+    hp = pet_data.get('hp', 0)
+    hunger = pet_data.get('hunger', 0)
+    happiness = pet_data.get('happiness', None)
+    mood = pet_data.get('mood', 'normal')
+
+    show_pet(mood)
+    show_stats(name, hp, hunger, happiness)
+
+def save_pet(pet_data: Dict[str, Any], filename: str = "save.json"):
+    """(v2.0) 將寵物字典儲存為 JSON 檔案。"""
+    try:
+        with open(filename, 'w', encoding='utf-8') as f:
+            json.dump(pet_data, f, ensure_ascii=False, indent=2)
+        print(f"✅ 寵物資料已儲存到 {filename}")
+    except Exception as e:
+        print(f"❌ 儲存失敗: {e}")
+
+def load_pet(filename: str = "save.json") -> Optional[Dict[str, Any]]:
+    """(v2.0) 從 JSON 檔案讀取寵物資料。"""
+    try:
+        with open(filename, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        print(f"✅ 成功讀取 {filename}")
+        return data
+    except FileNotFoundError:
+        print(f"⚠️ 找不到存檔 {filename}")
+        return None
+    except Exception as e:
+        print(f"❌ 讀取失敗: {e}")
+        return None
+
+# ==========================================
+# New Features v3.0 (Rich UI)
+# ==========================================
+
+def render_hud(player: Dict[str, Any]):
+    """
+    (v3.0 New) 顯示精簡的 HUD (Heads-Up Display)。
+    """
+    name = player.get('name', 'Player')
+    hp = player.get('hp', 100)
+    max_hp = player.get('max_hp', 100)
+    gold = player.get('gold', 0)
+    
+    hp_percent = min(100, max(0, int(hp / max_hp * 100)))
+    hp_color = "#00C851" if hp_percent > 50 else "#ff4444"
+
+    html = f"""
+    <div style="background: rgba(0,0,0,0.8); color: white; padding: 10px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 600px;">
+        <div style="font-weight: bold; font-size: 1.2em;">👤 {name}</div>
+        <div style="flex-grow: 1; margin: 0 20px;">
+            <div style="background: #333; height: 15px; border-radius: 10px; overflow: hidden;">
+                <div style="background: {hp_color}; width: {hp_percent}%; height: 100%;"></div>
+            </div>
+            <div style="font-size: 0.8em; text-align: center;">HP: {hp}/{max_hp}</div>
+        </div>
+        <div style="color: gold;">💰 {gold} G</div>
+    </div>
+    """
+    _render_html(html)
+
+def show_dashboard(player: Dict[str, Any], enemy: Optional[Dict[str, Any]] = None, logs: List[str] = []):
+    """
+    (v3.0 New) 顯示完整的戰鬥儀表板。
+    包含：左側玩家狀態，右側敵人狀態 (如果有)，下方戰鬥紀錄。
+    """
+    if MODE == "TERMINAL":
+        print(f"--- DASHBOARD ---")
+        print(f"Player: {player.get('name')} | HP: {player.get('hp')}")
+        if enemy:
+            print(f"Enemy: {enemy.get('name')} | HP: {enemy.get('hp')}")
+        print("--- LOGS ---")
+        for log in logs[-3:]:
+            print(f"> {log}")
+        return
+
+    # Helper to create stat card HTML
+    def _create_card(entity, is_enemy=False):
+        if not entity: return ""
+        name = entity.get('name', 'Unknown')
+        hp = entity.get('hp', 100)
+        max_hp = entity.get('max_hp', 100) # Assuming max_hp is stored, else default 100
+        mood = entity.get('mood', 'normal')
+        
+        # Determine image
+        # In real scenario, might need logic to pick image based on 'species' or 'name' + 'mood'
+        # For simplicity, using mood for player, 'slime' for enemy default? 
+        # Or just use mood filename if provided.
+        # Let's assume pet_lib style: mood.png
+        img_filename = f"{mood}.png"
+        img_path = _get_img_path(img_filename)
+        
+        img_tag = ""
+        if img_path:
+            with open(img_path, "rb") as f:
+                b64 = base64.b64encode(f.read()).decode("utf-8")
+            img_tag = f'<img src="data:image/png;base64,{b64}" style="height: 80px; width: 80px; object-fit: contain;">'
+        else:
+             img_tag = f'<div style="height: 80px; width: 80px; background: #ccc; display: flex; align-items: center; justify-content: center;">{mood}</div>'
+
+        hp_percent = int(hp / max_hp * 100) if max_hp > 0 else 0
+        hp_color = "#ff4444" if is_enemy else "#00C851"
+
+        border = "2px solid #ff4444" if is_enemy else "2px solid #00C851"
+        bg = "rgba(50, 0, 0, 0.1)" if is_enemy else "rgba(0, 50, 0, 0.1)"
+
+        return f"""
+        <div style="border: {border}; background: {bg}; border-radius: 10px; padding: 10px; width: 45%; display: flex; align-items: center;">
+            <div style="margin-right: 15px;">{img_tag}</div>
+            <div style="width: 100%;">
+                <div style="font-weight: bold; font-size: 1.1em; margin-bottom: 5px;">{name}</div>
+                <div style="background: #444; height: 10px; border-radius: 5px; width: 100%;">
+                    <div style="background: {hp_color}; width: {hp_percent}%; height: 100%; border-radius: 5px;"></div>
+                </div>
+                <div style="font-size: 0.8em; margin-top: 2px;">HP: {hp}/{max_hp}</div>
+            </div>
+        </div>
+        """
+
+    player_card = _create_card(player, is_enemy=False)
+    enemy_card = _create_card(enemy, is_enemy=True) if enemy else '<div style="width: 45%;"></div>'
+
+    # Logs Area
+    log_html = ""
+    for msg in reversed(logs[-5:]): # Show last 5, newest on top
+        log_html += f'<div style="border-bottom: 1px solid #eee; padding: 4px;">{msg}</div>'
+
+    dashboard = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; border: 1px solid #ccc; padding: 10px; border-radius: 10px; background: #fff;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+            {player_card}
+            {enemy_card}
+        </div>
+        <div style="background: #f9f9f9; padding: 10px; border-radius: 5px; height: 120px; overflow-y: auto; font-size: 0.9em;">
+            <strong>📜 Battle Log</strong>
+            {log_html}
+        </div>
+    </div>
+    """
+    
+    # clear_output(wait=True) # Animation effect!
+    _render_html(dashboard)
+
+def show_animation(frames: List[str], delay: float = 0.5):
+    """
+    (v3.0 New) 簡單的動畫播放 (顯示圖片序列)。
+    Args:
+        frames: 圖片檔名列表 (e.g. ['happy.png', 'excited.png'])
+        delay: 間隔秒數
+    """
+    if MODE == "TERMINAL":
+        print(f"[ANIMATION] Playing {len(frames)} frames...")
+        return
+
+    for frame in frames:
+        clear_output(wait=True)
+        show_image(frame)
+        time.sleep(delay)
+
+def play_sound(name: str):
+    """
+    (v3.0 New) 播放音效。
+    Args:
+        name: 音效名稱 (例如 'attack', 'level_up', 'game_over')
+    """
+    if MODE == "TERMINAL":
+        print(f"[SOUND] 🎵 Playing sound: {name}")
+        return
+
+    # 公開音效資源 (來自 CodeSkulptor 等開源專案)
+    SOUNDS = {
+        "attack": "http://codeskulptor-demos.commondatastorage.googleapis.com/GalaxyInvaders/player_shoot.wav",
+        "hit": "http://codeskulptor-demos.commondatastorage.googleapis.com/GalaxyInvaders/explosion_02.wav",
+        "level_up": "http://codeskulptor-demos.commondatastorage.googleapis.com/GalaxyInvaders/bonus.wav",
+        "game_over": "http://commondatastorage.googleapis.com/codeskulptor-assets/week7-brrring.m4a",
+        "bgm": "http://commondatastorage.googleapis.com/codeskulptor-demos/riceracer_assets/music/race1.ogg"
+    }
+
+    url = SOUNDS.get(name)
+    if not url:
+        print(f"⚠️ 找不到音效: {name}")
+        return
+
+    # autoplay=True 讓聲音自動播放
+    display(Audio(url=url, autoplay=True))
+
+def show_battle_log(logs: List[str]):
+    """
+    (v3.0 New) 顯示獨立的戰鬥紀錄視窗。
+    """
+    if MODE == "TERMINAL":
+        print("--- Battle Log ---")
+        for log in logs:
+            print(f"> {log}")
+        return
+
+    log_html = ""
+    for msg in reversed(logs): # Show all logs, reversed (newest on top) usually better? Or normal order?
+        # Dashboard uses reversed for "Recent 5". 
+        # For a full log window, maybe normal order is better? 
+        # Let's stick to normal order for a "History" window, but dashboard often puts newest on top.
+        # Lesson Plan implies "The Rolling Window".
+        # Let's keep it consistent: Newest on top is good for quick glances.
+        # But for a "Story", oldest on top is better.
+        # Let's do: Newest at bottom (Standard console style) but Auto-scroll to bottom?
+        # HTML simplified: Just list them.
+        log_html += f'<div style="border-bottom: 1px solid #eee; padding: 4px;">{msg}</div>'
+
+    html = f"""
+    <div style="
+        font-family: Arial, sans-serif; 
+        border: 2px solid #666; 
+        border-radius: 10px; 
+        background: #fff; 
+        padding: 10px; 
+        max-width: 500px;
+    ">
+        <h3 style="margin-top: 0; border-bottom: 2px solid #ddd; padding-bottom: 5px;">📜 Battle Log</h3>
+        <div style="background: #f9f9f9; padding: 10px; border-radius: 5px; height: 150px; overflow-y: auto; font-size: 0.9em;">
+            {log_html}
+        </div>
+    </div>
+    """
+    _render_html(html)
+
+# ==========================================
+# New Features v4.0 (AI & Logic)
+# ==========================================
+
+def show_chat_bubble(speaker: str, message: str, is_user: bool = False):
+    """
+    (v4.0 New) 顯示聊天氣泡。
+    Args:
+        speaker: 說話者名字
+        message: 訊息內容
+        is_user: True 表示是使用者 (靠右對齊)，False 表示是 AI (靠左對齊)
+    """
+    if MODE == "TERMINAL":
+        prefix = "You" if is_user else speaker
+        print(f"[{prefix}]: {message}")
+        return
+
+    align = "right" if is_user else "left"
+    bg_color = "#DCF8C6" if is_user else "#E8E8E8" # WhatsApp green style for user
+    margin_left = "auto" if is_user else "0"
+    margin_right = "0" if is_user else "auto"
+
+    html = f"""
+    <div style="display: flex; flex-direction: column; align-items: {f'flex-end' if is_user else 'flex-start'}; margin-bottom: 10px;">
+        <div style="font-size: 0.8em; color: #666; margin-bottom: 2px; margin-{align}: 5px;">{speaker}</div>
+        <div style="
+            background-color: {bg_color}; 
+            padding: 8px 12px; 
+            border-radius: 15px; 
+            max-width: 70%; 
+            box-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+            margin-left: {margin_left};
+            margin-right: {margin_right};
+            position: relative;
+        ">
+            {message}
+        </div>
+    </div>
+    """
+    _render_html(html)
+
+def show_thinking(prompt: str, thinking_time: float = 2.0):
+    """
+    (v4.0 New) 模擬 AI 思考過程。
+    Args:
+        prompt: 傳入的咒語 (Prompt)
+        thinking_time: 模擬思考秒數
+    """
+    if MODE == "TERMINAL":
+        print(f"Thinking about: '{prompt}'...")
+        time.sleep(thinking_time)
+        return
+
+    # Visualizing "Thinking"
+    html_thinking = f"""
+    <div style="display: flex; align-items: center; color: #888;">
+        <span style="margin-right: 10px;">🧠 AI Thinking...</span>
+        <div style="
+            width: 10px; height: 10px; background: #888; border-radius: 50%; 
+            animation: pulse 1s infinite;"></div>
+    </div>
+    """
+    _render_html(html_thinking)
+    time.sleep(thinking_time)
+    clear_output(wait=True) # Remove thinking indicator
+
+def simulate_api(endpoint: str, data: Dict[str, Any], latency: float = 1.0):
+    """
+    (v4.0 New) 模擬 API 呼叫過程。
+    """
+    if MODE == "TERMINAL":
+        print(f"POST {endpoint}")
+        print(f"Data: {data}")
+        time.sleep(latency)
+        print("Response: 200 OK")
+        return
+
+    # Packet animation (Simplified)
+    print(f"📡 Sending data to {endpoint}...")
+    display(HTML(f"<div style='font-family: monospace; color: blue;'>Payload: {json.dumps(data)}</div>"))
+    time.sleep(latency / 2)
+    print("☁️ Processing in Cloud...")
+    time.sleep(latency / 2)
+    print("✅ Response received (200 OK)")
+
+def set_mindset(personality_text: str):
+    """
+    (v4.0 New) 視覺化設定 System Prompt。
+    """
+    if MODE == "TERMINAL":
+        print(f"[SYSTEM] Updating Mindset: {personality_text[:20]}...")
+        return
+    
+    html = f"""
+    <div style="
+        border: 2px dashed #9C27B0; 
+        background: #F3E5F5; 
+        padding: 10px; 
+        border-radius: 8px; 
+        color: #4A148C; 
+        margin-bottom: 10px;
+    ">
+        <strong>🧠 System Mindset Loaded:</strong><br>
+        <em>"{personality_text}"</em>
+    </div>
+    """
+    _render_html(html)
+
