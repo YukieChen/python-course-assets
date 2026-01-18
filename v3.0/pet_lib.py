@@ -2,17 +2,21 @@
 Cyber-Pet Library - 視覺化電子雞工具庫 (v3.0)
 
 這是 Cyber-Pet 課程的核心視覺化工具庫 (Rich UI 支援版)。
-新增了支援 HTML/CSS Dashboard 功能，讓 Colab 筆記本介面更豐富。
+新增了支援 HTML/CSS Dashboard、Animation、Sound 功能，讓 Colab 筆記本介面更豐富。
 
 主要功能：
 - show_dashboard: 整合顯示玩家、敵人、戰鬥紀錄
 - render_hud: 顯示精美 HUD
+- show_animation: 播放動畫
+- play_sound: 播放音效
+- show_battle_log: 顯示戰鬥日誌
+- create_pet: (v2.0) 創建寵物字典
 - show_pet_dict: (v2.0) 顯示寵物
 - save_pet/load_pet: (v2.0) 檔案存取
 
 Changelog:
-- v3.0.0 (L26-L30): Added Rich UI (Dashboard), Animation support
-- v2.0.0 (L16-L20): Added Dict support, Save/Load functions
+- v3.0.0 (L26-L30): Added Rich UI (Dashboard), Animation, Sound support
+- v2.0.0 (L16-L25): Added Dict support, Save/Load functions, create_pet
 - v1.1.0 (L15): Refactored structure
 - v1.0.0 (L01-L14): Initial release
 """
@@ -28,7 +32,7 @@ from typing import Optional, Union, Dict, Any, List
 
 # 嘗試匯入 IPython 環境 (Jupyter Support)
 try:
-    from IPython.display import display, HTML, clear_output
+    from IPython.display import display, HTML, clear_output, Audio
     MODE = "JUPYTER"
 except ImportError:
     MODE = "TERMINAL"
@@ -37,9 +41,20 @@ except ImportError:
     def clear_output(wait=False): pass
     class HTML:
         def __init__(self, data): self.data = data
+    class Audio:
+        def __init__(self, *args, **kwargs): pass
 
 # Constants
 ASSETS_DIR = os.path.join("assets", "images")
+
+# Sound URLs (預設音效庫)
+SOUND_LIBRARY = {
+    "attack": "https://commondatastorage.googleapis.com/codeskulptor-assets/Epoq-Lepidoptera.ogg",
+    "hit": "https://commondatastorage.googleapis.com/codeskulptor-assets/week7-brrring.m4a",
+    "level_up": "https://commondatastorage.googleapis.com/codeskulptor-demos/riceracer_assets/fx/win.ogg",
+    "game_over": "https://commondatastorage.googleapis.com/codeskulptor-assets/Evillaugh.ogg",
+    "bgm": "https://commondatastorage.googleapis.com/codeskulptor-demos/pyman_assets/ateapill.ogg"
+}
 
 # ==========================================
 # Utility Functions (工具函式)
@@ -172,19 +187,55 @@ def set_label(name: str):
     """
     _render_html(html)
 
+# ==========================================
+# v2.0 Features (Dictionaries)
+# ==========================================
+
+def create_pet(name: str, hp: int = 100, hunger: int = 50, mood: str = "normal", **kwargs) -> Dict[str, Any]:
+    """
+    (v2.0) 創建寵物字典的便捷函式。
+    
+    Args:
+        name: 寵物名字
+        hp: 生命值 (預設 100)
+        hunger: 飢餓值 (預設 50)
+        mood: 心情 (預設 "normal")
+        **kwargs: 其他自訂屬性 (如 happiness, attack, defense, max_hp 等)
+    
+    Returns:
+        包含寵物資料的字典
+    """
+    pet_data = {
+        "name": name,
+        "hp": hp,
+        "hunger": hunger,
+        "mood": mood
+    }
+    # 加入額外的屬性
+    pet_data.update(kwargs)
+    return pet_data
+
 def show_pet_dict(pet_data: Dict[str, Any]):
-    """(v2.0) 顯示寵物狀態，支援傳入 Dictionary。"""
+    """
+    (v2.0) 顯示寵物狀態，支援傳入 Dictionary。
+    自動從字典中提取 'name', 'hp', 'hunger', 'happiness', 'mood' 等欄位。
+    """
     name = pet_data.get('name', 'Unknown')
     hp = pet_data.get('hp', 0)
     hunger = pet_data.get('hunger', 0)
-    happiness = pet_data.get('happiness', None)
+    happiness = pet_data.get('happiness', None) # Optional
     mood = pet_data.get('mood', 'normal')
 
+    # 1. 顯示表情
     show_pet(mood)
+
+    # 2. 顯示數值
     show_stats(name, hp, hunger, happiness)
 
 def save_pet(pet_data: Dict[str, Any], filename: str = "save.json"):
-    """(v2.0) 將寵物字典儲存為 JSON 檔案。"""
+    """
+    (v2.0) 將寵物字典儲存為 JSON 檔案。
+    """
     try:
         with open(filename, 'w', encoding='utf-8') as f:
             json.dump(pet_data, f, ensure_ascii=False, indent=2)
@@ -193,7 +244,9 @@ def save_pet(pet_data: Dict[str, Any], filename: str = "save.json"):
         print(f"❌ 儲存失敗: {e}")
 
 def load_pet(filename: str = "save.json") -> Optional[Dict[str, Any]]:
-    """(v2.0) 從 JSON 檔案讀取寵物資料。"""
+    """
+    (v2.0) 從 JSON 檔案讀取寵物資料。
+    """
     try:
         with open(filename, 'r', encoding='utf-8') as f:
             data = json.load(f)
@@ -207,13 +260,18 @@ def load_pet(filename: str = "save.json") -> Optional[Dict[str, Any]]:
         return None
 
 # ==========================================
-# New Features v3.0 (Rich UI)
+# v3.0 Features (Rich UI, Animation, Sound)
 # ==========================================
 
 def render_hud(player: Dict[str, Any]):
     """
     (v3.0 New) 顯示精簡的 HUD (Heads-Up Display)。
     """
+    if MODE == "TERMINAL":
+        print(f"--- HUD ---")
+        print(f"{player.get('name', 'Player')} | HP: {player.get('hp', 0)}/{player.get('max_hp', 100)} | Gold: {player.get('gold', 0)}")
+        return
+        
     name = player.get('name', 'Player')
     hp = player.get('hp', 100)
     max_hp = player.get('max_hp', 100)
@@ -256,14 +314,10 @@ def show_dashboard(player: Dict[str, Any], enemy: Optional[Dict[str, Any]] = Non
         if not entity: return ""
         name = entity.get('name', 'Unknown')
         hp = entity.get('hp', 100)
-        max_hp = entity.get('max_hp', 100) # Assuming max_hp is stored, else default 100
+        max_hp = entity.get('max_hp', 100)
         mood = entity.get('mood', 'normal')
         
         # Determine image
-        # In real scenario, might need logic to pick image based on 'species' or 'name' + 'mood'
-        # For simplicity, using mood for player, 'slime' for enemy default? 
-        # Or just use mood filename if provided.
-        # Let's assume pet_lib style: mood.png
         img_filename = f"{mood}.png"
         img_path = _get_img_path(img_filename)
         
@@ -315,22 +369,73 @@ def show_dashboard(player: Dict[str, Any], enemy: Optional[Dict[str, Any]] = Non
     </div>
     """
     
-    # clear_output(wait=True) # Animation effect!
     _render_html(dashboard)
+
+def show_battle_log(messages: List[str]):
+    """
+    (v3.0 New) 顯示戰鬥日誌視窗。
+    """
+    if MODE == "TERMINAL":
+        print("--- BATTLE LOG ---")
+        for msg in messages[-5:]:
+            print(f"> {msg}")
+        return
+    
+    log_html = ""
+    for msg in reversed(messages[-10:]):  # Show last 10, newest on top
+        log_html += f'<div style="border-bottom: 1px solid #eee; padding: 4px;">{msg}</div>'
+    
+    html = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; border: 2px solid #333; padding: 10px; border-radius: 10px; background: #f9f9f9;">
+        <div style="font-weight: bold; margin-bottom: 10px;">📜 Battle Log</div>
+        <div style="background: #fff; padding: 10px; border-radius: 5px; height: 150px; overflow-y: auto; font-size: 0.9em;">
+            {log_html}
+        </div>
+    </div>
+    """
+    _render_html(html)
 
 def show_animation(frames: List[str], delay: float = 0.5):
     """
-    (v3.0 New) 簡單的動畫播放 (顯示圖片序列)。
+    (v3.0 New) 播放動畫序列。
+    
     Args:
-        frames: 圖片檔名列表 (e.g. ['happy.png', 'excited.png'])
-        delay: 間隔秒數
+        frames: 動畫影格列表（可以是文字或圖片檔名）
+        delay: 每個影格之間的延遲時間（秒）
     """
     if MODE == "TERMINAL":
-        print(f"[ANIMATION] Playing {len(frames)} frames...")
+        for frame in frames:
+            print(frame)
+            time.sleep(delay)
         return
-
+    
     for frame in frames:
         clear_output(wait=True)
-        show_image(frame)
+        # 判斷是圖片還是文字
+        if frame.endswith('.png') or frame.endswith('.jpg'):
+            show_image(frame)
+        else:
+            print(frame)
         time.sleep(delay)
 
+def play_sound(sound_name: str):
+    """
+    (v3.0 New) 播放音效。
+    
+    Args:
+        sound_name: 音效名稱 (attack, hit, level_up, game_over, bgm)
+    """
+    if MODE == "TERMINAL":
+        print(f"[SOUND] Playing: {sound_name}")
+        return
+    
+    if sound_name not in SOUND_LIBRARY:
+        print(f"⚠️ Unknown sound: {sound_name}")
+        print(f"Available sounds: {', '.join(SOUND_LIBRARY.keys())}")
+        return
+    
+    url = SOUND_LIBRARY[sound_name]
+    try:
+        display(Audio(url=url, autoplay=True))
+    except Exception as e:
+        print(f"❌ Failed to play sound: {e}")

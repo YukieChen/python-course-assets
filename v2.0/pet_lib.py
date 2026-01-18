@@ -174,6 +174,30 @@ def set_label(name: str):
 # New Features v2.0 (Dictionaries)
 # ==========================================
 
+def create_pet(name: str, hp: int = 100, hunger: int = 50, mood: str = "normal", **kwargs) -> Dict[str, Any]:
+    """
+    (v2.0 New) 創建寵物字典的便捷函式。
+    
+    Args:
+        name: 寵物名字
+        hp: 生命值 (預設 100)
+        hunger: 飢餓值 (預設 50)
+        mood: 心情 (預設 "normal")
+        **kwargs: 其他自訂屬性 (如 happiness, attack, defense 等)
+    
+    Returns:
+        包含寵物資料的字典
+    """
+    pet_data = {
+        "name": name,
+        "hp": hp,
+        "hunger": hunger,
+        "mood": mood
+    }
+    # 加入額外的屬性
+    pet_data.update(kwargs)
+    return pet_data
+
 def show_pet_dict(pet_data: Dict[str, Any]):
     """
     (v2.0 New) 顯示寵物狀態，支援傳入 Dictionary。
