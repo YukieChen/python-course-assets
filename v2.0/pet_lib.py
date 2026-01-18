@@ -25,7 +25,7 @@ from typing import Optional, Union, Dict, Any
 
 # 嘗試匯入 IPython 環境 (Jupyter Support)
 try:
-    from IPython.display import display, HTML, Image
+    from IPython.display import display, HTML, Image  # type: ignore
     MODE = "JUPYTER"
 except ImportError:
     MODE = "TERMINAL"
@@ -117,8 +117,10 @@ def show_stats(name: str, hp: int, hunger: int, happiness: Optional[int] = None)
             print(f"Happy: {happiness}/100")
         return
     
-    def _create_bar_html(label, value):
-        color = _get_bar_color(value)
+    def _create_bar_html(label, value, reverse_color=False):
+        # For hunger: higher value = more hungry = red (reverse logic)
+        color_value = (100 - value) if reverse_color else value
+        color = _get_bar_color(color_value)
         return f"""
         <div style="margin-bottom: 5px;">
             <strong>{label}:</strong> {value}/100
@@ -130,7 +132,7 @@ def show_stats(name: str, hp: int, hunger: int, happiness: Optional[int] = None)
 
     content_html = f"""<h3 style="margin: 0 0 10px 0; text-align: center;">🍱 {name}</h3>"""
     content_html += _create_bar_html("HP", hp)
-    content_html += _create_bar_html("Hunger", hunger)
+    content_html += _create_bar_html("Hunger", hunger, reverse_color=True)
     
     if happiness is not None:
         content_html += _create_bar_html("Happiness", happiness)

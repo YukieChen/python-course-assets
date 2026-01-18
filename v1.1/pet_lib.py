@@ -24,15 +24,17 @@ from typing import Optional, Union
 
 # 嘗試匯入 IPython 環境 (Jupyter Support)
 try:
-    from IPython.display import display, HTML, Image
+    from IPython.display import display, HTML, Image  # type: ignore
     MODE = "JUPYTER"
 except ImportError:
     MODE = "TERMINAL"
     print("⚠️ IPython not found. Running in TERMINAL mode (Text only).")
     # Mock classes for Terminal fallback
-    def display(obj): pass 
+    def display(obj): pass
+
     class HTML:
         def __init__(self, data): self.data = data
+
     class Image:
         def __init__(self, filename, width=None): self.filename = filename
 
@@ -43,9 +45,11 @@ ASSETS_DIR = os.path.join("assets", "images")
 # Utility Functions (工具函式)
 # ==========================================
 
+
 def get_version() -> str:
     """取得當前 pet_lib 版本"""
     return __version__
+
 
 def check_compatibility(required_version: str) -> bool:
     """檢查版本相容性"""
@@ -56,6 +60,7 @@ def check_compatibility(required_version: str) -> bool:
     except:
         return False
 
+
 def _get_img_path(filename: str) -> Optional[str]:
     """Helper to get full path and verify existence."""
     path = os.path.join(ASSETS_DIR, filename)
@@ -63,6 +68,7 @@ def _get_img_path(filename: str) -> Optional[str]:
         print(f"⚠️ Warning: Image {filename} not found. Did you run setup.py?")
         return None
     return path
+
 
 def _render_html(html_content: str):
     """Internal helper to render HTML content safely."""
@@ -72,15 +78,19 @@ def _render_html(html_content: str):
         # In terminal mode, we might want to strip HTML or just ignore
         pass
 
+
 def _get_bar_color(value: int) -> str:
     """決定狀態條的顏色 (Refactored Logic)"""
-    if value < 20: return "#ff4444" # Red (Critical)
-    if value < 50: return "#ffbb33" # Orange (Warning)
-    return "#00C851" # Green (Good)
+    if value < 20:
+        return "#ff4444"  # Red (Critical)
+    if value < 50:
+        return "#ffbb33"  # Orange (Warning)
+    return "#00C851"  # Green (Good)
 
 # ==========================================
 # Core Functions (核心功能)
 # ==========================================
+
 
 def show_image(filename: str, width: int = 200):
     """顯示原始圖片檔案"""
@@ -109,17 +119,20 @@ def show_image(filename: str, width: int = 200):
     """
     _render_html(html)
 
+
 def show_egg():
     """Lesson 1: 顯示神秘蛋"""
     if MODE == "TERMINAL":
         print("(O) [Mystery Egg]")
         return
-        
+
     print("Mystery Egg found!")
     show_image("egg.png")
 
+
 # Alias for backward compatibility
 summon = show_egg
+
 
 def show_pet(mood: str = "normal"):
     """顯示寵物表情 (happy, sad, normal)"""
@@ -129,6 +142,7 @@ def show_pet(mood: str = "normal"):
 
     filename = f"{mood}.png"
     show_image(filename)
+
 
 def show_stats(name: str, hp: int, hunger: int, happiness: Optional[int] = None):
     """
@@ -143,10 +157,12 @@ def show_stats(name: str, hp: int, hunger: int, happiness: Optional[int] = None)
             print(f"Happy:    [{'#' * (happiness//10):<10}] {happiness}/100")
         print("----------------")
         return
-    
+
     # Internal helper for bar HTML generation (New in v1.1)
-    def _create_bar_html(label, value):
-        color = _get_bar_color(value)
+    def _create_bar_html(label, value, reverse_color=False):
+        # For hunger: higher value = more hungry = red (reverse logic)
+        color_value = (100 - value) if reverse_color else value
+        color = _get_bar_color(color_value)
         return f"""
         <div style="margin-bottom: 5px;">
             <strong>{label}:</strong> {value}/100
@@ -164,8 +180,8 @@ def show_stats(name: str, hp: int, hunger: int, happiness: Optional[int] = None)
 
     content_html = f"""<h3 style="margin: 0 0 10px 0; text-align: center;">🍱 {name}</h3>"""
     content_html += _create_bar_html("HP", hp)
-    content_html += _create_bar_html("Hunger", hunger)
-    
+    content_html += _create_bar_html("Hunger", hunger, reverse_color=True)
+
     if happiness is not None:
         content_html += _create_bar_html("Happiness", happiness)
 
@@ -180,8 +196,9 @@ def show_stats(name: str, hp: int, hunger: int, happiness: Optional[int] = None)
         {content_html}
     </div>
     """
-    
+
     _render_html(container_html)
+
 
 def say(name: str, message: str):
     """Render a speech bubble next to the name."""
@@ -217,6 +234,7 @@ def say(name: str, message: str):
     </div>
     """
     _render_html(html)
+
 
 def set_label(name: str):
     """
