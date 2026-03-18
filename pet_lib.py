@@ -1,21 +1,86 @@
+"""
+Cyber-Pet Library - 視覺化電子雞工具庫 (v1.0)
+
+這是 Cyber-Pet 課程的核心視覺化工具庫（重構版）。
+保持所有功能向後相容，但改善了內部結構與說明文件。
+
+主要功能：
+- 圖片顯示與動畫
+- 狀態條與數值視覺化
+- 對話氣泡與互動元件
+
+Changelog:
+- v1.0.0 (L01-L14): Initial release
+"""
+
+__version__ = "1.0.0"
+__author__ = "Cyber-Pet Course Team"
+__description__ = "視覺化電子雞工具庫"
 
 import os
 import base64
 try:
-    from IPython.display import display, HTML, Image
+    from IPython.display import display, HTML, Image  # type: ignore
     MODE = "JUPYTER"
 except ImportError:
     MODE = "TERMINAL"
     print("⚠️ IPython not found. Running in TERMINAL mode (Text only).")
     # Mock classes to prevent NameError
-    def display(obj): pass 
+    def display(obj): pass
+
     class HTML:
         def __init__(self, data): self.data = data
+
     class Image:
         def __init__(self, filename, width=None): self.filename = filename
 
 # Constants
 ASSETS_DIR = os.path.join("assets", "images")
+
+# ==========================================
+# Utility Functions (版本管理)
+# ==========================================
+
+
+def get_version():
+    """取得當前 pet_lib 版本
+
+    Returns:
+        str: 版本號，例如 "1.0.0"
+
+    Example:
+        >>> import pet_lib as pet
+        >>> print(pet.get_version())
+        1.0.0
+    """
+    return __version__
+
+
+def check_compatibility(required_version):
+    """檢查版本相容性
+
+    Args:
+        required_version (str): 需要的最低版本，例如 "1.0.0"
+
+    Returns:
+        bool: True 表示相容，False 表示版本過舊
+
+    Example:
+        >>> import pet_lib as pet
+        >>> if pet.check_compatibility("1.0.0"):
+        >>>     print("版本相容！")
+    """
+    try:
+        current = tuple(map(int, __version__.split('.')))
+        required = tuple(map(int, required_version.split('.')))
+        return current >= required
+    except:
+        return False
+
+# ==========================================
+# Core Functions (核心功能)
+# ==========================================
+
 
 def _get_img_path(filename):
     """Helper to get full path and verify existence."""
@@ -24,6 +89,7 @@ def _get_img_path(filename):
         print(f"⚠️ Warning: Image {filename} not found. Did you run setup.py?")
         return None
     return path
+
 
 def show_image(filename, width=200):
     """Display a raw image file."""
@@ -50,17 +116,30 @@ def show_image(filename, width=200):
         """
         display(HTML(html))
 
+
+def show_book():
+    """顯示魔法書 (The Grimoire)"""
+    if MODE == "TERMINAL":
+        print("(B) [Grimoire: pet_lib]")
+        return
+
+    print("✨ 魔法陣啟動！獲得魔法書：pet_lib ✨")
+    show_image("pet_lib_book.png")
+
+
 def show_egg():
     """Lesson 1: Show the Egg."""
     if MODE == "TERMINAL":
         print("(O) [Mystery Egg]")
         return
-        
+
     print("Mystery Egg found!")
     show_image("egg.png")
 
+
 # Alias for Lesson 1 Narrative
 summon = show_egg
+
 
 def show_pet(mood="normal"):
     """Show the pet with a specific mood (happy, sad, normal)."""
@@ -70,6 +149,7 @@ def show_pet(mood="normal"):
 
     filename = f"{mood}.png"
     show_image(filename)
+
 
 def show_stats(name, hp, hunger, happiness=None):
     """
@@ -84,11 +164,13 @@ def show_stats(name, hp, hunger, happiness=None):
             print(f"Happy:    [{'#' * (happiness//10):<10}] {happiness}/100")
         print("----------------")
         return
-    
+
     def _bar_color(value):
-        if value < 20: return "#ff4444" # Red
-        if value < 50: return "#ffbb33" # Orange
-        return "#00C851" # Green
+        if value < 20:
+            return "#ff4444"  # Red
+        if value < 50:
+            return "#ffbb33"  # Orange
+        return "#00C851"  # Green
 
     html = f"""
     <div style="
@@ -120,7 +202,7 @@ def show_stats(name, hp, hunger, happiness=None):
             <strong>Hunger:</strong> {hunger}/100
             <div style="background-color: #ddd; border-radius: 5px; height: 10px; width: 100%;">
                 <div style="
-                    background-color: {_bar_color(hunger)}; 
+                    background-color: {_bar_color(100 - hunger)}; 
                     width: {min(hunger, 100)}%; 
                     height: 100%; 
                     border-radius: 5px;">
@@ -128,7 +210,7 @@ def show_stats(name, hp, hunger, happiness=None):
             </div>
         </div>
     """
-    
+
     if happiness is not None:
         html += f"""
         <!-- Happiness Bar -->
@@ -147,6 +229,7 @@ def show_stats(name, hp, hunger, happiness=None):
 
     html += "</div>"
     display(HTML(html))
+
 
 def say(name, message):
     """Render a speech bubble next to the name."""
@@ -182,6 +265,7 @@ def say(name, message):
     </div>
     """
     display(HTML(html))
+
 
 def set_label(name):
     """
