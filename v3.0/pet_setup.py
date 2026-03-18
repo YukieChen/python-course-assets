@@ -17,7 +17,8 @@ IMAGE_FILES = [
     "happy.png",
     "sad.png",
     "normal.png",
-    "poop.png"
+    "poop.png",
+    "pet_lib_book.png"
 ]
 
 def install_assets():
