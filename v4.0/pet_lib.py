@@ -121,6 +121,14 @@ def show_image(filename: str, width: int = 200):
     """
     _render_html(html)
 
+def show_book():
+    """顯示魔法書 (The Grimoire)"""
+    if MODE == "TERMINAL":
+        print("(B) [Grimoire: pet_lib]")
+        return
+    print("✨ 魔法陣啟動！獲得魔法書：pet_lib ✨")
+    show_image("pet_lib_book.png")
+
 def show_pet(mood: str = "normal"):
     """顯示寵物表情 (happy, sad, normal)"""
     if MODE == "TERMINAL":

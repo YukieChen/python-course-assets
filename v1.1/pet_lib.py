@@ -120,6 +120,16 @@ def show_image(filename: str, width: int = 200):
     _render_html(html)
 
 
+def show_book():
+    """顯示魔法書 (The Grimoire)"""
+    if MODE == "TERMINAL":
+        print("(B) [Grimoire: pet_lib]")
+        return
+
+    print("✨ 魔法陣啟動！獲得魔法書：pet_lib ✨")
+    show_image("pet_lib_book.png")
+
+
 def show_egg():
     """Lesson 1: 顯示神秘蛋"""
     if MODE == "TERMINAL":
