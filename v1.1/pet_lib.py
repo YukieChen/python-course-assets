@@ -8,28 +8,26 @@ Cyber-Pet Library - 視覺化電子雞工具庫 (v1.1)
 - 圖片顯示與動畫
 - 狀態條與數值視覺化
 - 對話氣泡與互動元件
+- 成長階段與身份合成（v1.1）
 
 Changelog:
-- v1.1.0 (L15): Refactored structure, improved documentation
+- v1.1.0: show_growth_stage, show_identity_scene；成長圖可選，缺檔時 fallback 既有圖
 - v1.0.0 (L01-L14): Initial release
 """
 
 __version__ = "1.1.0"
 __author__ = "Cyber-Pet Course Team"
-__description__ = "視覺化電子雞工具庫 (Refactored)"
+__description__ = "視覺化電子雞工具庫"
 
 import os
 import base64
-from typing import Optional, Union
-
-# 嘗試匯入 IPython 環境 (Jupyter Support)
 try:
     from IPython.display import display, HTML, Image  # type: ignore
     MODE = "JUPYTER"
 except ImportError:
     MODE = "TERMINAL"
     print("⚠️ IPython not found. Running in TERMINAL mode (Text only).")
-    # Mock classes for Terminal fallback
+    # Mock classes to prevent NameError
     def display(obj): pass
 
     class HTML:
@@ -42,17 +40,38 @@ except ImportError:
 ASSETS_DIR = os.path.join("assets", "images")
 
 # ==========================================
-# Utility Functions (工具函式)
+# Utility Functions (版本管理)
 # ==========================================
 
 
-def get_version() -> str:
-    """取得當前 pet_lib 版本"""
+def get_version():
+    """取得當前 pet_lib 版本
+
+    Returns:
+        str: 版本號，例如 "1.0.0"
+
+    Example:
+        >>> import pet_lib as pet
+        >>> print(pet.get_version())
+        1.0.0
+    """
     return __version__
 
 
-def check_compatibility(required_version: str) -> bool:
-    """檢查版本相容性"""
+def check_compatibility(required_version):
+    """檢查版本相容性
+
+    Args:
+        required_version (str): 需要的最低版本，例如 "1.0.0"
+
+    Returns:
+        bool: True 表示相容，False 表示版本過舊
+
+    Example:
+        >>> import pet_lib as pet
+        >>> if pet.check_compatibility("1.0.0"):
+        >>>     print("版本相容！")
+    """
     try:
         current = tuple(map(int, __version__.split('.')))
         required = tuple(map(int, required_version.split('.')))
@@ -60,8 +79,12 @@ def check_compatibility(required_version: str) -> bool:
     except:
         return False
 
+# ==========================================
+# Core Functions (核心功能)
+# ==========================================
 
-def _get_img_path(filename: str) -> Optional[str]:
+
+def _get_img_path(filename):
     """Helper to get full path and verify existence."""
     path = os.path.join(ASSETS_DIR, filename)
     if not os.path.exists(path):
@@ -70,54 +93,60 @@ def _get_img_path(filename: str) -> Optional[str]:
     return path
 
 
-def _render_html(html_content: str):
-    """Internal helper to render HTML content safely."""
-    if MODE == "JUPYTER":
-        display(HTML(html_content))
-    else:
-        # In terminal mode, we might want to strip HTML or just ignore
-        pass
+def _path_if_exists(filename):
+    """Return path under assets/images if file exists; no warning if missing."""
+    path = os.path.join(ASSETS_DIR, filename)
+    return path if os.path.exists(path) else None
 
 
-def _get_bar_color(value: int) -> str:
-    """決定狀態條的顏色 (Refactored Logic)"""
-    if value < 20:
-        return "#ff4444"  # Red (Critical)
-    if value < 50:
-        return "#ffbb33"  # Orange (Warning)
-    return "#00C851"  # Green (Good)
-
-# ==========================================
-# Core Functions (核心功能)
-# ==========================================
+# Preferred dedicated growth art: growth_{stage}.png; else fallback to legacy moods / egg.
+GROWTH_STAGE_FALLBACK = {
+    "egg": "egg.png",
+    "hatchling": "happy.png",
+    "juvenile": "normal.png",
+    "tween": "normal.png",
+    "partner": "happy.png",
+}
 
 
-def show_image(filename: str, width: int = 200):
-    """顯示原始圖片檔案"""
+def _resolve_growth_image_filename(stage):
+    """Resolve which file to show for a narrative growth stage."""
+    stage = (stage or "egg").lower().strip()
+    preferred = f"growth_{stage}.png"
+    if _path_if_exists(preferred):
+        return preferred
+    if stage == "egg" and _path_if_exists("egg.png"):
+        return "egg.png"
+    fb = GROWTH_STAGE_FALLBACK.get(stage)
+    if fb and _path_if_exists(fb):
+        return fb
+    return None
+
+
+def show_image(filename, width=200):
+    """Display a raw image file."""
     if MODE == "TERMINAL":
         print(f"[IMAGE] {filename}")
         return
 
     path = _get_img_path(filename)
-    if not path:
-        return
+    if path:
+        # Check if we need to embed as base64 (for Colab HTML support)
+        try:
+            with open(path, "rb") as f:
+                encoded = base64.b64encode(f.read()).decode("utf-8")
+            img_src = f"data:image/png;base64,{encoded}"
+        except Exception as e:
+            print(f"Error loading image: {e}")
+            return
 
-    # Check if we need to embed as base64 (for Colab HTML support)
-    try:
-        with open(path, "rb") as f:
-            encoded = base64.b64encode(f.read()).decode("utf-8")
-        img_src = f"data:image/png;base64,{encoded}"
-    except Exception as e:
-        print(f"Error loading image: {e}")
-        return
-
-    # Use HTML for better control over sizing
-    html = f"""
-    <div style="display: flex; justify-content: center; align-items: center; width: {width}px; height: {width}px; overflow: hidden;">
-        <img src="{img_src}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
-    </div>
-    """
-    _render_html(html)
+        # Use HTML for better control over sizing (maintain aspect ratio within box)
+        html = f"""
+        <div style="display: flex; justify-content: center; align-items: center; width: {width}px; height: {width}px; overflow: hidden;">
+            <img src="{img_src}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+        </div>
+        """
+        display(HTML(html))
 
 
 def show_book():
@@ -131,7 +160,7 @@ def show_book():
 
 
 def show_egg():
-    """Lesson 1: 顯示神秘蛋"""
+    """Lesson 1: Show the Egg."""
     if MODE == "TERMINAL":
         print("(O) [Mystery Egg]")
         return
@@ -140,12 +169,12 @@ def show_egg():
     show_image("egg.png")
 
 
-# Alias for backward compatibility
+# Alias for Lesson 1 Narrative
 summon = show_egg
 
 
-def show_pet(mood: str = "normal"):
-    """顯示寵物表情 (happy, sad, normal)"""
+def show_pet(mood="normal"):
+    """Show the pet with a specific mood (happy, sad, normal)."""
     if MODE == "TERMINAL":
         print(f"(^.{mood}.^) [Pet is {mood}]")
         return
@@ -154,10 +183,10 @@ def show_pet(mood: str = "normal"):
     show_image(filename)
 
 
-def show_stats(name: str, hp: int, hunger: int, happiness: Optional[int] = None):
+def show_stats(name, hp, hunger, happiness=None):
     """
     Render a beautiful HTML stat bar.
-    Refactored in v1.1 to use _render_html helper.
+    Progress bars change color based on value.
     """
     if MODE == "TERMINAL":
         print(f"--- {name} ---")
@@ -168,34 +197,14 @@ def show_stats(name: str, hp: int, hunger: int, happiness: Optional[int] = None)
         print("----------------")
         return
 
-    # Internal helper for bar HTML generation (New in v1.1)
-    def _create_bar_html(label, value, reverse_color=False):
-        # For hunger: higher value = more hungry = red (reverse logic)
-        color_value = (100 - value) if reverse_color else value
-        color = _get_bar_color(color_value)
-        return f"""
-        <div style="margin-bottom: 5px;">
-            <strong>{label}:</strong> {value}/100
-            <div style="background-color: #ddd; border-radius: 5px; height: 10px; width: 100%;">
-                <div style="
-                    background-color: {color}; 
-                    width: {min(value, 100)}%; 
-                    height: 100%; 
-                    border-radius: 5px;
-                    transition: width 0.5s;">
-                </div>
-            </div>
-        </div>
-        """
+    def _bar_color(value):
+        if value < 20:
+            return "#ff4444"  # Red
+        if value < 50:
+            return "#ffbb33"  # Orange
+        return "#00C851"  # Green
 
-    content_html = f"""<h3 style="margin: 0 0 10px 0; text-align: center;">🍱 {name}</h3>"""
-    content_html += _create_bar_html("HP", hp)
-    content_html += _create_bar_html("Hunger", hunger, reverse_color=True)
-
-    if happiness is not None:
-        content_html += _create_bar_html("Happiness", happiness)
-
-    container_html = f"""
+    html = f"""
     <div style="
         border: 2px solid #333; 
         border-radius: 10px; 
@@ -203,14 +212,58 @@ def show_stats(name: str, hp: int, hunger: int, happiness: Optional[int] = None)
         width: 300px; 
         background-color: #f0f0f0; 
         font-family: Arial, sans-serif;">
-        {content_html}
-    </div>
+        
+        <h3 style="margin: 0 0 10px 0; text-align: center;">🍱 {name}</h3>
+        
+        <!-- HP Bar -->
+        <div style="margin-bottom: 5px;">
+            <strong>HP:</strong> {hp}/100
+            <div style="background-color: #ddd; border-radius: 5px; height: 10px; width: 100%;">
+                <div style="
+                    background-color: {_bar_color(hp)}; 
+                    width: {min(hp, 100)}%; 
+                    height: 100%; 
+                    border-radius: 5px;
+                    transition: width 0.5s;">
+                </div>
+            </div>
+        </div>
+
+        <!-- Hunger Bar -->
+        <div style="margin-bottom: 5px;">
+            <strong>Hunger:</strong> {hunger}/100
+            <div style="background-color: #ddd; border-radius: 5px; height: 10px; width: 100%;">
+                <div style="
+                    background-color: {_bar_color(100 - hunger)}; 
+                    width: {min(hunger, 100)}%; 
+                    height: 100%; 
+                    border-radius: 5px;">
+                </div>
+            </div>
+        </div>
     """
 
-    _render_html(container_html)
+    if happiness is not None:
+        html += f"""
+        <!-- Happiness Bar -->
+        <div>
+            <strong>Happiness:</strong> {happiness}/100
+            <div style="background-color: #ddd; border-radius: 5px; height: 10px; width: 100%;">
+                <div style="
+                    background-color: {_bar_color(happiness)}; 
+                    width: {min(happiness, 100)}%; 
+                    height: 100%; 
+                    border-radius: 5px;">
+                </div>
+            </div>
+        </div>
+        """
+
+    html += "</div>"
+    display(HTML(html))
 
 
-def say(name: str, message: str):
+def say(name, message):
     """Render a speech bubble next to the name."""
     if MODE == "TERMINAL":
         print(f"{name}: {message}")
@@ -243,10 +296,10 @@ def say(name: str, message: str):
         </div>
     </div>
     """
-    _render_html(html)
+    display(HTML(html))
 
 
-def set_label(name: str):
+def set_label(name):
     """
     Lesson 2: Set the label (name) of the pet.
     Visualizes a name tag above the pet.
@@ -272,4 +325,74 @@ def set_label(name: str):
         Hello, my name is {name}
     </div>
     """
-    _render_html(html)
+    display(HTML(html))
+
+
+def show_growth_stage(stage="egg"):
+    """
+    Lesson 3+: 顯示「成長階段」敘事用圖（與 show_pet 的情緒圖正交）。
+    若存在 growth_{stage}.png 則優先；否則使用內建 fallback（見 ADR 0001）。
+    """
+    if MODE == "TERMINAL":
+        fn = _resolve_growth_image_filename(stage)
+        print(f"[GROWTH:{stage}] file={fn or 'MISSING'}")
+        return
+
+    fn = _resolve_growth_image_filename(stage)
+    if not fn:
+        print(f"⚠️ Cannot resolve growth stage image for stage={stage!r}. Run pet_setup.install_assets()")
+        return
+    print(f"🌱 Growth stage: {stage}")
+    show_image(fn)
+
+
+def show_identity_scene(name, stage="egg", width=220):
+    """
+    Lesson 2: 單一畫面內同時顯示名牌與精靈（預設蛋階段），強化「註冊身份」視覺。
+    """
+    if MODE == "TERMINAL":
+        print(f"[IDENTITY] name={name!r} stage={stage!r}")
+        return
+
+    fn = _resolve_growth_image_filename(stage)
+    if not fn:
+        print("⚠️ show_identity_scene: no sprite; showing name tag only.")
+        set_label(name)
+        return
+
+    path = _path_if_exists(fn)
+    if not path:
+        set_label(name)
+        return
+
+    try:
+        with open(path, "rb") as f:
+            encoded = base64.b64encode(f.read()).decode("utf-8")
+        img_src = f"data:image/png;base64,{encoded}"
+    except Exception as e:
+        print(f"Error loading image: {e}")
+        set_label(name)
+        return
+
+    html = f"""
+    <div style="display: flex; flex-direction: column; align-items: center; width: {width + 40}px;">
+        <div style="
+            font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif;
+            background-color: #FFEB3B;
+            color: #333;
+            padding: 5px 15px;
+            border-radius: 15px;
+            border: 3px solid #FBC02D;
+            font-weight: bold;
+            font-size: 1.2em;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+            margin-bottom: 12px;
+            transform: rotate(-2deg);">
+            Hello, my name is {name}
+        </div>
+        <div style="display: flex; justify-content: center; align-items: center; width: {width}px; height: {width}px; overflow: hidden;">
+            <img src="{img_src}" style="max-width: 100%; max-height: 100%; object-fit: contain;" alt="pet stage {stage}">
+        </div>
+    </div>
+    """
+    display(HTML(html))
