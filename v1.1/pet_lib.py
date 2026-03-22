@@ -1,18 +1,9 @@
 """
-Cyber-Pet Library - 視覺化電子雞工具庫 (v1.1)
+Cyber-Pet Library - 視覺化電子雞工具庫
 
-這是 Cyber-Pet 課程的核心視覺化工具庫（重構版）。
-保持所有功能向後相容，但改善了內部結構與說明文件。
+課程用視覺化工具：圖片、狀態條、對話氣泡、成長階段與註冊畫面。
 
-主要功能：
-- 圖片顯示與動畫
-- 狀態條與數值視覺化
-- 對話氣泡與互動元件
-- 成長階段與身份合成（v1.1）
-
-Changelog:
-- v1.1.0: show_growth_stage, show_identity_scene；成長圖可選，缺檔時 fallback 既有圖
-- v1.0.0 (L01-L14): Initial release
+維護者備註（內部）：版本號見 __version__，供發佈與除錯；學生教材請用白話介紹功能即可。
 """
 
 __version__ = "1.1.0"
@@ -110,7 +101,7 @@ GROWTH_STAGE_FALLBACK = {
 
 
 def _resolve_growth_image_filename(stage):
-    """Resolve which file to show for a narrative growth stage."""
+    """Resolve which file to show for a growth stage sprite."""
     stage = (stage or "egg").lower().strip()
     preferred = f"growth_{stage}.png"
     if _path_if_exists(preferred):
@@ -330,8 +321,8 @@ def set_label(name):
 
 def show_growth_stage(stage="egg"):
     """
-    Lesson 3+: 顯示「成長階段」敘事用圖（與 show_pet 的情緒圖正交）。
-    若存在 growth_{stage}.png 則優先；否則使用內建 fallback（見 ADR 0001）。
+    顯示成長階段圖（與 show_pet 的表情圖分開）。
+    若存在 growth_{stage}.png 則優先；否則使用內建 fallback。
     """
     if MODE == "TERMINAL":
         fn = _resolve_growth_image_filename(stage)
@@ -346,9 +337,9 @@ def show_growth_stage(stage="egg"):
     show_image(fn)
 
 
-def show_identity_scene(name, stage="egg", width=220):
+def show_identity(name, stage="egg", width=220):
     """
-    Lesson 2: 單一畫面內同時顯示名牌與精靈（預設蛋階段），強化「註冊身份」視覺。
+    同一畫面顯示名字名牌與成長階段圖（預設蛋）。
     """
     if MODE == "TERMINAL":
         print(f"[IDENTITY] name={name!r} stage={stage!r}")
@@ -356,7 +347,7 @@ def show_identity_scene(name, stage="egg", width=220):
 
     fn = _resolve_growth_image_filename(stage)
     if not fn:
-        print("⚠️ show_identity_scene: no sprite; showing name tag only.")
+        print("⚠️ 找不到階段圖，先只顯示名牌。")
         set_label(name)
         return
 
@@ -396,3 +387,7 @@ def show_identity_scene(name, stage="egg", width=220):
     </div>
     """
     display(HTML(html))
+
+
+# 舊函式名保留，與較早教材相容（維護用；新範例請用 show_identity）。
+show_identity_scene = show_identity
