@@ -138,7 +138,7 @@ def show_stats(name: str, hp: int, hunger: int, happiness: Optional[int] = None)
         </div>
         """
 
-    content_html = f"""<h3 style="margin: 0 0 10px 0; text-align: center;">🍱 {name}</h3>"""
+    content_html = f"""<h3 style="margin: 0 0 10px 0; text-align: center; color: inherit;">🍱 {name}</h3>"""
     content_html += _create_bar_html("HP", hp)
     content_html += _create_bar_html("Hunger", hunger, reverse_color=True)
     
@@ -146,7 +146,7 @@ def show_stats(name: str, hp: int, hunger: int, happiness: Optional[int] = None)
         content_html += _create_bar_html("Happiness", happiness)
 
     container_html = f"""
-    <div style="border: 2px solid #333; border-radius: 10px; padding: 10px; width: 300px; background-color: #f0f0f0; font-family: Arial, sans-serif;">
+    <div style="border: 2px solid #333; border-radius: 10px; padding: 10px; width: 300px; background-color: #f0f0f0; color: #333; font-family: Arial, sans-serif;">
         {content_html}
     </div>
     """
@@ -161,7 +161,7 @@ def say(name: str, message: str):
     html = f"""
     <div style="display: flex; align-items: center; margin-bottom: 10px;">
         <div style="font-weight: bold; margin-right: 10px;">{name}:</div>
-        <div style="background-color: #fff; border: 2px solid #333; border-radius: 15px; padding: 8px 15px;">
+        <div style="background-color: #fff; color: #333; border: 2px solid #333; border-radius: 15px; padding: 8px 15px;">
             {message}
         </div>
     </div>
