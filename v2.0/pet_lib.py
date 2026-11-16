@@ -19,9 +19,13 @@ __version__ = "2.0.0"
 __author__ = "Cyber-Pet Course Team"
 
 import os
+import math
 import base64
+from html import escape as _html_escape
 import json
 from typing import Optional, Union, Dict, Any
+
+Number = Union[int, float]
 
 # 嘗試匯入 IPython 環境 (Jupyter Support)
 try:
@@ -64,7 +68,42 @@ def _render_html(html_content: str):
     else:
         pass
 
-def _get_bar_color(value: int) -> str:
+def _validate_stat(value: Any, name: str = "value") -> float:
+    """Validate and convert a stat value to a finite float."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise TypeError(f"{name} must be a number (int or float), got {type(value).__name__}")
+    num = float(value)
+    if math.isnan(num) or math.isinf(num):
+        raise ValueError(f"{name} must be a finite number")
+    return num
+
+def _format_stat(value: Number, name: str = "value") -> str:
+    """Format a stat number for clean display (max 2 decimal places, no trailing zeros)."""
+    num = _validate_stat(value, name)
+    rounded = round(num, 2)
+    if rounded == 0:
+        return "0"
+    if rounded == int(rounded):
+        return str(int(rounded))
+    return f"{rounded:.2f}".rstrip("0").rstrip(".")
+
+def _clamp_percent(value: Number, max_value: Number = 100.0, name: str = "value") -> float:
+    """Calculate percentage and clamp between 0.0 and 100.0."""
+    num = _validate_stat(value, name)
+    max_num = _validate_stat(max_value, "max_value")
+    if max_num <= 0:
+        return 0.0
+    pct = (num / max_num) * 100.0
+    return round(max(0.0, min(100.0, pct)), 2)
+
+def _terminal_bar(value: Number, max_value: Number = 100.0, width: int = 10, name: str = "value") -> str:
+    """Render a fixed-width ASCII progress bar for terminal mode."""
+    pct = _clamp_percent(value, max_value, name)
+    filled = int(pct // (100.0 / width))
+    filled = max(0, min(width, filled))
+    return "#" * filled + " " * (width - filled)
+
+def _get_bar_color(value: Number) -> str:
     """決定狀態條的顏色"""
     if value < 20: return "#ff4444" # Red
     if value < 50: return "#ffbb33" # Orange
@@ -92,9 +131,15 @@ def show_image(filename: str, width: int = 200):
         print(f"Error loading image: {e}")
         return
 
+    mood_alts = {
+        "normal.png": "電子雞目前表情：平常",
+        "happy.png": "電子雞目前表情：開心",
+        "sad.png": "電子雞目前表情：難過",
+    }
+    alt_text = _html_escape(mood_alts.get(filename, f"圖片：{filename}"), quote=True)
     html = f"""
     <div style="display: flex; justify-content: center; align-items: center; width: {width}px; height: {width}px; overflow: hidden;">
-        <img src="{img_src}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+        <img src="{img_src}" alt="{alt_text}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
     </div>
     """
     _render_html(html)
@@ -115,38 +160,43 @@ def show_pet(mood: str = "normal"):
     filename = f"{mood}.png"
     show_image(filename)
 
-def show_stats(name: str, hp: int, hunger: int, happiness: Optional[int] = None):
+def show_stats(name: str, hp: Number, hunger: Number, happiness: Optional[Number] = None):
     """(v1.0 Compatible) Render a beautiful HTML stat bar."""
+    hp_val = _validate_stat(hp, "hp")
+    hunger_val = _validate_stat(hunger, "hunger")
+    happy_val = _validate_stat(happiness, "happiness") if happiness is not None else None
+
     if MODE == "TERMINAL":
         print(f"--- {name} ---")
-        print(f"HP: {hp}/100")
-        print(f"Hunger: {hunger}/100")
-        if happiness is not None:
-            print(f"Happy: {happiness}/100")
+        print(f"HP:       [{_terminal_bar(hp_val)}] {_format_stat(hp_val)}/100")
+        print(f"Hunger:   [{_terminal_bar(hunger_val)}] {_format_stat(hunger_val)}/100")
+        if happy_val is not None:
+            print(f"Happy:    [{_terminal_bar(happy_val)}] {_format_stat(happy_val)}/100")
+        print("----------------")
         return
     
-    def _create_bar_html(label, value, reverse_color=False):
+    def _create_bar_html(label: str, value: float, reverse_color: bool = False) -> str:
         # For hunger: higher value = more hungry = red (reverse logic)
         color_value = (100 - value) if reverse_color else value
         color = _get_bar_color(color_value)
         return f"""
         <div style="margin-bottom: 5px;">
-            <strong>{label}:</strong> {value}/100
-            <div style="background-color: #ddd; border-radius: 5px; height: 10px; width: 100%;">
-                <div style="background-color: {color}; width: {min(value, 100)}%; height: 100%; border-radius: 5px;"></div>
+            <strong>{label}:</strong> {_format_stat(value)}/100
+            <div style="background-color: #ddd; border-radius: 5px; height: 10px; width: 100%; overflow: hidden;">
+                <div style="background-color: {color}; width: {_clamp_percent(value)}%; height: 100%; border-radius: 5px;"></div>
             </div>
         </div>
         """
 
-    content_html = f"""<h3 style="margin: 0 0 10px 0; text-align: center; color: inherit;">🍱 {name}</h3>"""
-    content_html += _create_bar_html("HP", hp)
-    content_html += _create_bar_html("Hunger", hunger, reverse_color=True)
+    content_html = f"""<h3 style="margin: 0 0 10px 0; text-align: center; color: inherit;">🍱 {_html_escape(str(name))}</h3>"""
+    content_html += _create_bar_html("HP", hp_val)
+    content_html += _create_bar_html("Hunger", hunger_val, reverse_color=True)
     
-    if happiness is not None:
-        content_html += _create_bar_html("Happiness", happiness)
+    if happy_val is not None:
+        content_html += _create_bar_html("Happiness", happy_val)
 
     container_html = f"""
-    <div style="border: 2px solid #333; border-radius: 10px; padding: 10px; width: 300px; background-color: #f0f0f0; color: #333; font-family: Arial, sans-serif;">
+    <div style="border: 2px solid #333; border-radius: 10px; padding: 10px; width: 324px; max-width: 100%; box-sizing: border-box; background-color: #f0f0f0; color: #333; font-family: Arial, sans-serif;">
         {content_html}
     </div>
     """
@@ -160,9 +210,9 @@ def say(name: str, message: str):
 
     html = f"""
     <div style="display: flex; align-items: center; margin-bottom: 10px;">
-        <div style="font-weight: bold; margin-right: 10px;">{name}:</div>
-        <div style="background-color: #fff; color: #333; border: 2px solid #333; border-radius: 15px; padding: 8px 15px;">
-            {message}
+        <div style="font-weight: bold; margin-right: 10px;">{_html_escape(str(name))}:</div>
+        <div style="background-color: #fff; color: #333; border: 2px solid #333; border-radius: 15px; padding: 8px 15px; min-width: 0; overflow-wrap: anywhere;">
+            {_html_escape(str(message))}
         </div>
     </div>
     """
@@ -184,7 +234,7 @@ def set_label(name: str):
 # New Features v2.0 (Dictionaries)
 # ==========================================
 
-def create_pet(name: str, hp: int = 100, hunger: int = 50, mood: str = "normal", **kwargs) -> Dict[str, Any]:
+def create_pet(name: str, hp: Number = 100, hunger: Number = 50, mood: str = "normal", **kwargs) -> Dict[str, Any]:
     """
     (v2.0 New) 創建寵物字典的便捷函式。
     
