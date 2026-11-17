@@ -227,8 +227,8 @@ def say(name: str, message: str):
 
     html = f"""
     <div style="display: flex; align-items: center; margin-bottom: 10px;">
-        <div style="font-weight: bold; margin-right: 10px;">{_html_escape(str(name))}:</div>
-        <div style="background-color: #fff; color: #333; border: 2px solid #333; border-radius: 15px; padding: 8px 15px; min-width: 0; overflow-wrap: anywhere;">
+        <div style="font-weight: bold; margin-right: 10px; flex-shrink: 0; max-width: 40%; overflow-wrap: anywhere; text-wrap: balance;">{_html_escape(str(name))}:</div>
+        <div style="background-color: #fff; color: #333; border: 2px solid #333; border-radius: 15px; padding: 8px 15px; min-width: 0; overflow-wrap: anywhere; text-wrap: balance; word-break: keep-all;">
             {_html_escape(str(message))}
         </div>
     </div>

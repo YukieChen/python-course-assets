@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-11-17 - Speech layout wrapping fix
+
+Applies to `v2.0/pet_lib.py`, `v3.0/pet_lib.py`, `v4.0/pet_lib.py`,
+and `v5.0/pet_lib.py`. This update changes only the inline CSS in `say`.
+
+- Speaker labels resist flex shrinking, retain a 40% maximum width, and
+  allow long names to wrap with balanced lines.
+- Message bubbles use balanced lines and `word-break: keep-all` to reduce
+  isolated trailing text and breaks within CJK text, while retaining
+  `min-width: 0` and `overflow-wrap: anywhere` for emergency wrapping.
+- Public signatures, literal HTML escaping, terminal output, numeric
+  behavior, version directory labels, and `__version__` literals remain
+  unchanged.
+
+This entry records the source change; it does not assert publication or
+completed classroom acceptance.
+
 ## 2026-11-16 - Canonical SDK snapshot synchronization
 
 Applies to `v2.0/pet_lib.py`, `v3.0/pet_lib.py`, `v4.0/pet_lib.py`,
